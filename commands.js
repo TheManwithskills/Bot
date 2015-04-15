@@ -135,6 +135,7 @@ exports.commands = {
 			survivor: 1,
 			games: 1,
 			wifi: 1,
+			tvbf: 1,
 			monotype: 1,
 			autoban: 1,
 			happy: 1,
@@ -829,7 +830,48 @@ exports.commands = {
 		}
 		this.say(room, text);
 	},
-
+	tvbf: function (arg, by, room) {
+		// nominations for 'TVBF of the Day'
+		if (config.serverid !== 'showdown') return false;
+		var text = this.canUse('tvbf', room, by) || room.charAt(0) === ',' ? '' : '/pm ' + by + ', ';
+		if (!this.tvbfRoom) this.tvbfRoom = {nominations: {}, tvbf: null};
+		arg = arg.split(',');
+		var msgType = toId(arg[0]);
+		switch (msgType) {
+		case 'nominate':
+			if (arg.length < 2) return this.say(room, text + 'Usage: .tvbf nominate, [TV Show, Book, or Film]');
+			text = room.charAt(0) === ',' ? '' : '/pm ' + by + ', ';
+			var user = toId(by);
+			var nom = arg[1].trim();
+			if (this.tvbfRoom.nominations[user]) {
+				this.say(room, text + "Your nomination has been changed to '" + nom + "'.");
+			} else {
+				this.say(room, text + "Your nomination has for '" + nom + "' has been saved.");
+			}
+			this.tvbfRoom.nominations[user] = nom;
+			break;
+		case 'viewnominations':
+		case 'viewnoms':
+			if (!this.canUse('tvbf', room, by)) return false;
+			var buffer = '';
+			for (var i in this.tvbfRoom.nominations) {
+				buffer += i + ": " + this.tvbfRoom.nominations[i] + "\n";
+			}
+			this.uploadToHastebin("The following TV Shows/Books/Films have been nominated for the 'TVBF of the Day'\n\n" + buffer, function (link) {
+				this.say(room, "/pm " + by + ", List of nominations: " + link);
+			}.bind(this));
+			break;
+		case 'set':
+			if (!this.canUse('tvbf', room, by)) return false;
+			if (arg.length < 2) return this.say(room, 'Usage: .tvbf set, [TV Show, Book, or Film]');
+			this.tvbfRoom.tvbf = arg[1].trim();
+			this.say(room, "The 'TVBF of the Day' set to: " + this.tvbfRoom.tvbf);
+			this.tvbfRoom.nominations = {};
+			break;
+		default:
+			this.say(room, text + (this.tvbfRoom.tvbf ? "**TVBF of the Day**: " + this.tvbfRoom.tvbf : "No 'TVBF of the Day' has been set."));
+		}
+	},
 
 	/**
 	 * Jeopardy commands
